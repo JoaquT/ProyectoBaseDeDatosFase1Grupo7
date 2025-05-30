@@ -1,0 +1,294 @@
+/*──────────────────────────────────────────────────────────────*/
+/*   ANIMATION-STUDIO SCHEMA                                    */
+/*──────────────────────────────────────────────────────────────*/
+--───────────────────────
+-- 1. ENTIDADES “FUERTES”
+--───────────────────────
+CREATE TABLE pelicula (
+    id_pelicula   VARCHAR(30) PRIMARY KEY,
+    titulo        VARCHAR(150) NOT NULL,
+    genero        VARCHAR(50),
+    duracion      INTEGER,           -- minutos
+    anio_estreno  INTEGER            -- AAAA
+);
+
+CREATE TABLE estudio (
+    id_estudio    VARCHAR(30) PRIMARY KEY,
+    nombre        VARCHAR(120) NOT NULL,
+    pais          CHAR(2),           -- ISO-3166-1 alpha-2
+    anio_fundacion INTEGER
+);
+
+CREATE TABLE departamento (
+    id_departamento VARCHAR(30) PRIMARY KEY,
+    nombre          VARCHAR(80) NOT NULL
+);
+
+CREATE TABLE software (
+    id_software   VARCHAR(30) PRIMARY KEY,
+    nombre        VARCHAR(100) NOT NULL,
+    version       VARCHAR(30)
+);
+
+CREATE TABLE personaje (
+    id_personaje  VARCHAR(30) PRIMARY KEY,
+    nombre        VARCHAR(100) NOT NULL,
+    especie       VARCHAR(60),
+    rol           VARCHAR(40)
+);
+
+CREATE TABLE animador (
+    id_animador   VARCHAR(30) PRIMARY KEY,
+    nombre        VARCHAR(100) NOT NULL,
+    nacionalidad  CHAR(2),          -- ISO country
+    especialidad  VARCHAR(80)
+);
+
+-- 1-N  (pelicula → premio)
+CREATE TABLE premio (
+    id_premio     VARCHAR(30) PRIMARY KEY,
+    id_pelicula   VARCHAR(30) NOT NULL,
+    nombre        VARCHAR(150) NOT NULL,
+    categoria     VARCHAR(100),
+    anio          INTEGER,
+    CONSTRAINT fk_premio_pelicula
+        FOREIGN KEY (id_pelicula)
+        REFERENCES pelicula(id_pelicula)
+        ON DELETE CASCADE            -- borra premios si se elimina la película
+);
+
+--───────────────────────
+-- 2. ENTIDAD DÉBIL
+--───────────────────────
+CREATE TABLE escena (
+    id_pelicula   VARCHAR(30) NOT NULL,
+    num_escena    VARCHAR(30) NOT NULL,
+    descripcion   TEXT,
+    PRIMARY KEY (id_pelicula, num_escena),
+    CONSTRAINT fk_escena_pelicula
+        FOREIGN KEY (id_pelicula)
+        REFERENCES pelicula(id_pelicula)
+        ON DELETE CASCADE
+);
+
+--───────────────────────
+-- 3. PRESUPUESTO (tri-FK)
+--───────────────────────
+CREATE TABLE presupuesto_asignado (
+    id_presupuesto   VARCHAR(30) PRIMARY KEY,
+    id_pelicula      VARCHAR(30) NOT NULL,
+    id_estudio       VARCHAR(30) NOT NULL,
+    id_departamento  VARCHAR(30) NOT NULL,
+    monto            NUMERIC(12,2) NOT NULL,
+    CONSTRAINT fk_presu_pelicula
+        FOREIGN KEY (id_pelicula)
+        REFERENCES pelicula(id_pelicula)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_presu_estudio
+        FOREIGN KEY (id_estudio)
+        REFERENCES estudio(id_estudio)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_presu_departamento
+        FOREIGN KEY (id_departamento)
+        REFERENCES departamento(id_departamento)
+        ON DELETE CASCADE
+);
+
+--───────────────────────
+-- 4. TABLAS PUENTE M:N
+--───────────────────────
+CREATE TABLE pelicula_software (
+    id_pelicula  VARCHAR(30) NOT NULL,
+    id_software  VARCHAR(30) NOT NULL,
+    PRIMARY KEY (id_pelicula, id_software),
+    FOREIGN KEY (id_pelicula) REFERENCES pelicula(id_pelicula)  ON DELETE CASCADE,
+    FOREIGN KEY (id_software) REFERENCES software(id_software)  ON DELETE CASCADE
+);
+
+CREATE TABLE pelicula_personaje (
+    id_pelicula   VARCHAR(30) NOT NULL,
+    id_personaje  VARCHAR(30) NOT NULL,
+    PRIMARY KEY (id_pelicula, id_personaje),
+    FOREIGN KEY (id_pelicula)  REFERENCES pelicula(id_pelicula)   ON DELETE CASCADE,
+    FOREIGN KEY (id_personaje) REFERENCES personaje(id_personaje) ON DELETE CASCADE
+);
+
+CREATE TABLE estudio_pelicula (
+    id_estudio   VARCHAR(30) NOT NULL,
+    id_pelicula  VARCHAR(30) NOT NULL,
+    PRIMARY KEY (id_estudio, id_pelicula),
+    FOREIGN KEY (id_estudio)  REFERENCES estudio(id_estudio)   ON DELETE CASCADE,
+    FOREIGN KEY (id_pelicula) REFERENCES pelicula(id_pelicula) ON DELETE CASCADE
+);
+
+CREATE TABLE estudio_departamento (
+    id_estudio       VARCHAR(30) NOT NULL,
+    id_departamento  VARCHAR(30) NOT NULL,
+    PRIMARY KEY (id_estudio, id_departamento),
+    FOREIGN KEY (id_estudio)      REFERENCES estudio(id_estudio)        ON DELETE CASCADE,
+    FOREIGN KEY (id_departamento) REFERENCES departamento(id_departamento) ON DELETE CASCADE
+);
+
+CREATE TABLE animador_personaje (
+    id_animador   VARCHAR(30) NOT NULL,
+    id_personaje  VARCHAR(30) NOT NULL,
+    PRIMARY KEY (id_animador, id_personaje),
+    FOREIGN KEY (id_animador)  REFERENCES animador(id_animador)   ON DELETE CASCADE,
+    FOREIGN KEY (id_personaje) REFERENCES personaje(id_personaje) ON DELETE CASCADE
+);
+
+CREATE TABLE animador_presupuesto (
+    id_animador      VARCHAR(30) NOT NULL,
+    id_presupuesto   VARCHAR(30) NOT NULL,
+    PRIMARY KEY (id_animador, id_presupuesto),
+    FOREIGN KEY (id_animador)     REFERENCES animador(id_animador)           ON DELETE CASCADE,
+    FOREIGN KEY (id_presupuesto)  REFERENCES presupuesto_asignado(id_presupuesto) ON DELETE CASCADE
+);
+
+
+/*───────────────────────────────────────────────*/
+/* 1. ENTIDADES “FUERTES”                       */
+/*───────────────────────────────────────────────*/
+INSERT INTO Pelicula(id_pelicula,titulo,genero,duracion,anio_estreno) VALUES
+ ('P1','Toy Friar'        ,'Comedia'   ,98 ,2019),
+ ('P2','Jungle Quest'     ,'Aventura'  ,105,2020),
+ ('P3','Ocean Song'       ,'Musical'   ,97 ,2021),
+ ('P4','Robot Dreams'     ,'Sci-Fi'    ,112,2022),
+ ('P5','Cosmic Rivals'    ,'Acción'    ,110,2023),
+ ('P6','Lunar Tales'      ,'Fantasia'  ,95 ,2024);
+
+INSERT INTO Estudio(id_estudio,nombre,pais,anio_fundacion) VALUES
+ ('E1','Sunrise Animation','JP',1985),
+ ('E2','Andes Studios'    ,'PE',2010),
+ ('E3','BlueWave Pictures','US',2001),
+ ('E4','Aura Cartoons'    ,'FR',1994);
+
+INSERT INTO Departamento(id_departamento,nombre) VALUES
+ ('D1','Animación 2D'),
+ ('D2','Animación 3D'),
+ ('D3','Dirección de Arte'),
+ ('D4','Efectos Visuales'),
+ ('D5','Guion'),
+ ('D6','Música');
+
+INSERT INTO Software(id_software,nombre,version) VALUES
+ ('S1','Maya'          ,'2024'),
+ ('S2','Blender'       ,'3.6'),
+ ('S3','Toon Boom'     ,'21'),
+ ('S4','Unity'         ,'2023 LTS'),
+ ('S5','After Effects' ,'24.1');
+
+INSERT INTO Personaje(id_personaje,nombre,especie,rol) VALUES
+ ('C1','Fray Max'       ,'Humano'     ,'Protagonista'),
+ ('C2','Liana'          ,'Humana'     ,'Protagonista'),
+ ('C3','Cap. Coral'     ,'Sirena'     ,'Protagonista'),
+ ('C4','RX-17'          ,'Robot'      ,'Protagonista'),
+ ('C5','Nova'           ,'Alien'      ,'Antagonista'),
+ ('C6','Kiro'           ,'Lobo'       ,'Secundario'),
+ ('C7','Dr. Nimbus'     ,'Humano'     ,'Antagonista'),
+ ('C8','Tempo'          ,'Hada'       ,'Secundario'),
+ ('C9','Atlas'          ,'Robot'      ,'Secundario'),
+ ('C10','Runa'          ,'Humana'     ,'Secundario');
+
+INSERT INTO Animador(id_animador,nombre,nacionalidad,especialidad) VALUES
+ ('A1','Akira Hoshino' ,'JP','Animación 2D'),
+ ('A2','María Quispe'  ,'PE','Animación 3D'),
+ ('A3','Leo Fischer'   ,'DE','Rigging'),
+ ('A4','Zoé Dubois'    ,'FR','Dirección de Arte'),
+ ('A5','Carlos Ramos'  ,'MX','FX'),
+ ('A6','Sara Khan'     ,'PK','Guion visual'),
+ ('A7','Jules Martin'  ,'FR','Composición'),
+ ('A8','Emily Chen'    ,'US','Música');
+
+/*───────────────────────────────────────────────*/
+/* 2. ENTIDAD DÉBIL                              */
+/*───────────────────────────────────────────────*/
+INSERT INTO Escena(id_pelicula,num_escena,descripcion) VALUES
+ ('P1','E1','Presentación del convento'),
+ ('P1','E2','Accidente con juguetes sagrados'),
+ ('P2','E1','Encuentro con el jaguar'),
+ ('P2','E2','Cruce del río rápido'),
+ ('P3','E1','Introducción coral'),
+ ('P4','E1','Despertar de RX-17'),
+ ('P4','E2','Escape del laboratorio'),
+ ('P5','E1','Batalla orbital'),
+ ('P6','E1','Niños mirando la luna'),
+ ('P6','E2','Primer salto de gravedad');
+
+/*───────────────────────────────────────────────*/
+/* 3. PRESUPUESTOS                               */
+/*───────────────────────────────────────────────*/
+INSERT INTO Presupuesto_Asignado(id_presupuesto,id_pelicula,id_estudio,id_departamento,monto) VALUES
+ ('PR101','P1','E1','D1', 850000),
+ ('PR102','P1','E1','D3', 200000),
+ ('PR103','P2','E2','D2', 920000),
+ ('PR104','P3','E3','D6', 150000),
+ ('PR105','P4','E3','D4',1200000),
+ ('PR106','P4','E3','D2', 600000),
+ ('PR107','P5','E4','D4', 950000),
+ ('PR108','P6','E2','D5', 250000);
+
+/*───────────────────────────────────────────────*/
+/* 4. PREMIOS  (0–N por película, 1–1 por premio)*/
+/*───────────────────────────────────────────────*/
+INSERT INTO Premio(id_premio,id_pelicula,nombre,categoria,anio) VALUES
+ ('AW1','P1','Golden Toon','Mejor Guion',2020),
+ ('AW2','P1','Critics Choice','Innovación',2020),
+ ('AW3','P2','Selva Award','Dirección de Arte',2021),
+ ('AW4','P3','Blue Wave Music','Mejor Banda Sonora',2022),
+ ('AW5','P4','Futurity','Efectos Visuales',2023),
+ ('AW6','P4','Nebula','Animación 3D',2023),
+ ('AW7','P5','Cosmos Fest','Sonido',2024),
+ ('AW8','P6','Luna Prize','Animación 2D',2025);
+
+/*───────────────────────────────────────────────*/
+/* 5. TABLAS PUENTE (M:N)                        */
+/*───────────────────────────────────────────────*/
+INSERT INTO Pelicula_Software(id_pelicula,id_software) VALUES
+ ('P1','S1'),('P1','S5'),
+ ('P2','S2'),('P2','S5'),
+ ('P3','S2'),('P3','S5'),
+ ('P4','S1'),('P4','S4'),('P4','S5'),
+ ('P5','S1'),('P5','S4'),
+ ('P6','S2'),('P6','S3');
+
+INSERT INTO Pelicula_Personaje(id_pelicula,id_personaje) VALUES
+ ('P1','C1'),('P1','C6'),
+ ('P2','C2'),('P2','C6'),('P2','C10'),
+ ('P3','C3'),('P3','C8'),
+ ('P4','C4'),('P4','C9'),
+ ('P5','C4'),('P5','C5'),('P5','C7'),
+ ('P6','C8'),('P6','C10');
+
+INSERT INTO Estudio_Pelicula(id_estudio,id_pelicula) VALUES
+ ('E1','P1'),
+ ('E2','P2'),
+ ('E3','P3'),('E3','P4'),
+ ('E4','P5'),
+ ('E2','P6');
+
+INSERT INTO Estudio_Departamento(id_estudio,id_departamento) VALUES
+ ('E1','D1'),('E1','D3'),
+ ('E2','D2'),('E2','D5'),
+ ('E3','D4'),('E3','D2'),('E3','D6'),
+ ('E4','D4');
+
+INSERT INTO Animador_Personaje(id_animador,id_personaje) VALUES
+ ('A1','C1'),('A1','C6'),
+ ('A2','C2'),('A2','C9'),
+ ('A3','C4'),
+ ('A4','C3'),
+ ('A5','C5'),
+ ('A6','C8'),
+ ('A7','C7'),
+ ('A8','C3');
+
+INSERT INTO Animador_Presupuesto(id_animador,id_presupuesto) VALUES
+ ('A1','PR101'),
+ ('A2','PR103'),
+ ('A3','PR106'),
+ ('A4','PR104'),
+ ('A5','PR105'),
+ ('A6','PR108'),
+ ('A7','PR105'),
+ ('A8','PR104');
